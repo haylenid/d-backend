@@ -1,10 +1,11 @@
-"""Backend gabungan: 1 proses FastAPI untuk 4 aplikasi.
+"""Backend gabungan: 1 proses FastAPI untuk 5 aplikasi.
 
 Namespace:
     /api/dbn6sport/v1/* -> dash-n6sport (dashboard kepelatihan)
     /api/dbacc/*        -> DB Accounting
     /api/dbfin/*        -> DB Finance
     /api/claisrox/*     -> Claisrox (operasional produksi)
+    /api/haylen/v1/*   -> dash-haylen (dashboard kepelatihan)
 
 Jalankan:  uvicorn app.main:app --reload   (dari folder d-backend/)
 Dokumen:   http://localhost:8000/docs
@@ -23,6 +24,8 @@ from app.apps.dbfin.router import router as dbfin_router
 from app.apps.dbfin.seed import ensure_owner as dbfin_owner
 from app.apps.dbn6sport.router import router as dbn6sport_router
 from app.apps.dbn6sport.seed import ensure_basics as dbn6sport_seed
+from app.apps.haylen.router import router as haylen_router
+from app.apps.haylen.seed import ensure_basics as haylen_seed
 from app.core.config import settings
 from app.core.database import SessionLocal, init_db
 from app.core.logging import setup_logging, get_logger, request_logging_middleware
@@ -39,6 +42,7 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         dbn6sport_seed(db)
+        haylen_seed(db)
         dbacc_owner(db)
         dbfin_owner(db)
         claisrox_owner(db)
@@ -83,8 +87,9 @@ app.include_router(dbn6sport_router, prefix="/api/dbn6sport/v1")
 app.include_router(dbacc_router, prefix="/api/dbacc")
 app.include_router(dbfin_router, prefix="/api/dbfin")
 app.include_router(claisrox_router, prefix="/api/claisrox")
+app.include_router(haylen_router, prefix="/api/haylen/v1")
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "apps": ["dbn6sport", "dbacc", "dbfin", "claisrox"]}
+    return {"status": "ok", "apps": ["dbn6sport", "dbacc", "dbfin", "claisrox", "haylen"]}
