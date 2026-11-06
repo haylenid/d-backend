@@ -1,4 +1,4 @@
-"""POST /auth/login, GET /auth/me"""
+"""POST /auth/login, GET /auth/me, POST /auth/change-password"""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -30,3 +30,18 @@ def login(body: schemas.LoginIn, db: Session = Depends(get_db)):
 @router.get("/auth/me")
 def me(user: models.Member = Depends(get_current_user)):
     return {"user": _out(user)}
+
+
+@router.post("/auth/change-password")
+def change_password(body: schemas.ChangePasswordIn,
+                    user: models.Member = Depends(get_current_user),
+                    db: Session = Depends(get_db)):
+    if not security.verify_password(body.old or "", user.password_hash):
+        # 400, bukan 401: token sesi valid, yang salah hanya isi password
+        # lama. 401 akan dianggap FE sebagai sesi kedaluwarsa (logout).
+        raise HTTPException(status_code=400, detail="Password saat ini salah")
+    if len(body.new or "") < 8:
+        raise HTTPException(status_code=400, detail="Password baru minimal 8 karakter")
+    user.password_hash = security.hash_password(body.new)
+    db.commit()
+    return {"data": {"ok": True}}

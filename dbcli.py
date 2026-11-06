@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""d-backend database CLI (v2).
+"""d-backend database CLI (v3).
 
 Jalankan dari root repo d-backend (tempat file .env berada):
 
     venv/bin/python dbcli.py --help
+    venv/bin/python dbcli.py menu
     venv/bin/python dbcli.py status
     venv/bin/python dbcli.py users list --app haylen
     venv/bin/python dbcli.py user create --app haylen --login owner --name "Owner Haylen" --role owner
@@ -31,7 +32,15 @@ Model user per app (diambil dari model masing-masing app, bukan ditebak):
   seperti jalur akun aplikasinya. Tier 0 hanya bisa dibuat/diubah lewat
   CLI ini secara eksplisit, bukan lewat API akun biasa.
 
-Aturan keamanan (sama seperti v1, dipertahankan di v2):
+Mode menu (v3): `venv/bin/python dbcli.py menu` membuka menu bernomor
+yang memanggil fungsi perintah yang sama persis dengan mode CLI — jadi
+tidak ada jalur kedua yang bisa menyimpang dari pengaman di atas.
+Menu hanya mengumpulkan argumen (app, login, role/tier, dll) lalu
+memanggil fungsi yang sama; kata sandi, konfirmasi hapus, dan ketik
+`RESET <app>` tetap diminta oleh fungsi itu sendiri. Pilihan yang salah
+atau gagal tidak keluar dari menu, kecuali memilih 0 (Keluar).
+
+Aturan keamanan (sama seperti v1, dipertahankan di v2 dan v3):
 - Kata sandi TIDAK PERNAH lewat argumen CLI, file, atau chat. Selalu
   diminta interaktif lewat getpass (tidak tampil saat diketik).
 - Perintah ini TIDAK PERNAH mencetak hash kata sandi, URL database,
@@ -56,6 +65,7 @@ import os
 import subprocess
 import sys
 import uuid
+from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 
 # Import app.main dulu: ini mendaftarkan semua model ke Base SQLAlchemy,
@@ -575,6 +585,245 @@ def cmd_db_reset(args) -> None:
                   f"--login <login/email> --name <nama> --tier 0")
 
 
+# ---------------------------------------------------------------- menu
+
+def _menu_text(prompt: str, default: str = "") -> str:
+    try:
+        v = input(prompt).strip()
+    except EOFError:
+        print()
+        raise SystemExit(0)
+    return v or default
+
+
+def _menu_yes(prompt: str) -> bool:
+    return _menu_text(prompt).lower() in ("y", "ya", "yes", "1")
+
+
+def _menu_pick_app() -> str | None:
+    """Pilih app lewat nomor atau nama. Kembalikan None bila batal (0/kosong)."""
+    apps = list(ALL_APPS)
+    print("Pilih app:")
+    for i, a in enumerate(apps, 1):
+        print(f"  {i}. {a}  (schema {ALL_APPS[a]})")
+    print("  0. Batal / kembali")
+    v = _menu_text("Nomor atau nama app: ")
+    if v in ("0", ""):
+        return None
+    if v.isdigit() and 1 <= int(v) <= len(apps):
+        return apps[int(v) - 1]
+    if v in apps:
+        return v
+    print("Pilihan tidak dikenal.")
+    return None
+
+
+def _menu_pick_role() -> str | None:
+    print("Pilih role:")
+    for i, r in enumerate(SPORT_ROLES, 1):
+        print(f"  {i}. {r}")
+    print("  0. Batal")
+    v = _menu_text("Nomor atau nama role: ")
+    if v in ("0", ""):
+        return None
+    if v.isdigit() and 1 <= int(v) <= len(SPORT_ROLES):
+        return SPORT_ROLES[int(v) - 1]
+    if v in SPORT_ROLES:
+        return v
+    print("Pilihan tidak dikenal.")
+    return None
+
+
+def _menu_pick_tier(default: int | None = None) -> int | None:
+    """Pilih tier 0-3. Kosong = default bila ada, bila tidak = batal.
+
+    Tier 0 selalu berarti owner, bukan batal — batal dilakukan di level
+    pilih app, atau dengan mengosongkan input bila tidak ada default."""
+    hint = f", kosong = {default}" if default is not None else ", kosong = batal"
+    v = _menu_text(f"Tier (0-3{hint}): ")
+    if v == "":
+        return default
+    if v.isdigit() and 0 <= int(v) <= 3:
+        return int(v)
+    print("Tier harus 0-3.")
+    return None
+
+
+def _menu_run(fn, args) -> None:
+    """Jalankan satu fungsi perintah; gagalnya tidak keluar dari menu."""
+    try:
+        fn(args)
+    except SystemExit:
+        pass
+    except KeyboardInterrupt:
+        print()
+        raise SystemExit(0)
+    print()
+
+
+def _menu_settings() -> None:
+    app = _menu_pick_app()
+    if app is None:
+        return
+    print("Settings (hanya sport):")
+    print("  1. Daftar semua setting")
+    print("  2. Tampilkan satu setting")
+    print("  3. Buat/ubah satu setting")
+    print("  0. Kembali")
+    choice = _menu_text("Pilih: ")
+    if choice == "1":
+        _menu_run(cmd_settings_list, SimpleNamespace(app=app))
+    elif choice == "2":
+        key = _menu_text("Kunci setting: ")
+        if key:
+            _menu_run(cmd_settings_get, SimpleNamespace(app=app, key=key))
+    elif choice == "3":
+        key = _menu_text("Kunci setting: ")
+        value = _menu_text("Nilai JSON: ")
+        if key and value:
+            _menu_run(cmd_settings_set, SimpleNamespace(app=app, key=key, value=value))
+    elif choice != "0":
+        print("Pilihan tidak dikenal.")
+
+
+def cmd_menu(_args) -> None:
+    print("d-backend database CLI — menu interaktif")
+    print("Perintah CLI biasa tetap berlaku; menu ini hanya jalan pintas.")
+    print("Kata sandi tetap diminta tersembunyi oleh perintahnya sendiri.")
+    while True:
+        print("Menu utama:")
+        print("  1. Status DB")
+        print("  2. Daftar user")
+        print("  3. Buat user")
+        print("  4. Ganti kata sandi user")
+        print("  5. Ubah role (sport) / tier (app tier)")
+        print("  6. Aktifkan/nonaktifkan user (app tier)")
+        print("  7. Hapus user")
+        print("  8. Settings (sport)")
+        print("  9. Backup schema")
+        print(" 10. Reset schema (DESTRUKTIF)")
+        print(" 11. Init DB")
+        print("  0. Keluar")
+        try:
+            choice = _menu_text("Pilih: ")
+        except SystemExit:
+            print("Keluar.")
+            return
+        except KeyboardInterrupt:
+            print("\nKeluar.")
+            return
+        if choice == "0" or choice == "":
+            print("Keluar.")
+            return
+        elif choice == "1":
+            _menu_run(cmd_status, SimpleNamespace())
+        elif choice == "2":
+            app = _menu_pick_app()
+            if app is not None:
+                _menu_run(cmd_users_list, SimpleNamespace(app=app))
+        elif choice == "3":
+            app = _menu_pick_app()
+            if app is None:
+                continue
+            login = _menu_text("Login (sport: login, dbacc: email, lain: username): ")
+            name = _menu_text("Nama: ")
+            if not login or not name:
+                print("Login dan nama wajib diisi.")
+                continue
+            if app in SPORT_APPS:
+                role = _menu_pick_role()
+                if role is None:
+                    continue
+                email = _menu_text("Email (boleh kosong, hanya sport): ")
+                mid = _menu_text("ID (kosong = otomatis u berikutnya): ")
+                _menu_run(cmd_user_create, SimpleNamespace(
+                    app=app, login=login, name=name, role=role, tier=None,
+                    email=email, id=mid))
+            else:
+                tier = _menu_pick_tier(default=3)
+                if tier is None:
+                    continue
+                _menu_run(cmd_user_create, SimpleNamespace(
+                    app=app, login=login, name=name, role=None, tier=tier,
+                    email="", id=""))
+        elif choice == "4":
+            app = _menu_pick_app()
+            if app is None:
+                continue
+            login = _menu_text("Login: ")
+            if login:
+                _menu_run(cmd_user_passwd, SimpleNamespace(app=app, login=login))
+        elif choice == "5":
+            app = _menu_pick_app()
+            if app is None:
+                continue
+            login = _menu_text("Login: ")
+            if not login:
+                continue
+            force = _menu_yes("Izinkan paksa bila owner/tier-0 satu-satunya? (y/N): ")
+            if app in SPORT_APPS:
+                role = _menu_pick_role()
+                if role is None:
+                    continue
+                _menu_run(cmd_user_set_role, SimpleNamespace(
+                    app=app, login=login, role=role, force=force))
+            else:
+                tier = _menu_pick_tier()
+                if tier is None:
+                    continue
+                _menu_run(cmd_user_set_tier, SimpleNamespace(
+                    app=app, login=login, tier=tier, force=force))
+        elif choice == "6":
+            app = _menu_pick_app()
+            if app is None:
+                continue
+            login = _menu_text("Login: ")
+            if not login:
+                continue
+            active = _menu_text("Aktif? (true/false): ").lower()
+            if active not in ("true", "false"):
+                print("Jawaban harus true atau false.")
+                continue
+            force = _menu_yes("Izinkan paksa bila owner/tier-0 satu-satunya? (y/N): ")
+            _menu_run(cmd_user_set_active, SimpleNamespace(
+                app=app, login=login, active=active, force=force))
+        elif choice == "7":
+            app = _menu_pick_app()
+            if app is None:
+                continue
+            login = _menu_text("Login: ")
+            if not login:
+                continue
+            force = _menu_yes("Izinkan paksa bila owner/tier-0 satu-satunya? (y/N): ")
+            _menu_run(cmd_user_delete, SimpleNamespace(
+                app=app, login=login, force=force))
+        elif choice == "8":
+            _menu_settings()
+        elif choice == "9":
+            app = _menu_pick_app()
+            if app is None:
+                continue
+            out = _menu_text("File backup: ")
+            if out:
+                _menu_run(cmd_db_backup, SimpleNamespace(app=app, out=out))
+        elif choice == "10":
+            app = _menu_pick_app()
+            if app is None:
+                continue
+            print("PERINGATAN: reset menghapus SEMUA data di satu schema.")
+            backup = _menu_text("File backup (kosong = tanpa backup, harus dikonfirmasi lagi): ")
+            confirm = _menu_text(f"Ketik nama app untuk konfirmasi ({app}): ")
+            _menu_run(cmd_db_reset, SimpleNamespace(
+                app=app, confirm=confirm,
+                backup=backup, no_backup=(backup == ""),
+                create_owner=False))
+        elif choice == "11":
+            basics = _menu_yes("Sekalian buat settings dasar olahraga? (y/N): ")
+            _menu_run(cmd_db_init, SimpleNamespace(basics=basics))
+        else:
+            print("Pilihan tidak dikenal.")
+
+
 # ---------------------------------------------------------------- main
 
 def build_parser() -> argparse.ArgumentParser:
@@ -583,6 +832,9 @@ def build_parser() -> argparse.ArgumentParser:
         description="d-backend database CLI. Kata sandi selalu diminta "
                     "interaktif, tidak pernah lewat argumen.")
     sub = p.add_subparsers(dest="cmd", required=True)
+
+    m = sub.add_parser("menu", help="menu interaktif bernomor (memanggil perintah yang sama)")
+    m.set_defaults(fn=cmd_menu)
 
     s = sub.add_parser("status", help="daftar schema, tabel, dan jumlah baris (baca saja)")
     s.set_defaults(fn=cmd_status)

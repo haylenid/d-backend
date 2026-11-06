@@ -13,6 +13,11 @@ class LoginIn(BaseModel):
     password: str = ""
 
 
+class ChangePasswordIn(BaseModel):
+    old: str = ""
+    new: str = ""
+
+
 class UserOut(BaseModel):
     id: str; name: str; role: str; login: str
     email: Optional[str] = None; wa: Optional[str] = None; loc: Optional[str] = None

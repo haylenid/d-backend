@@ -1,11 +1,24 @@
-# d-backend CLI — `dbcli.py` (v2)
+# d-backend CLI — `dbcli.py` (v3)
 
 Alat baris perintah untuk mengatur database d-backend, dijalankan dari
 root repo (tempat file `.env` berada), memakai venv yang sama dengan service:
 
 ```
 venv/bin/python dbcli.py --help
+venv/bin/python dbcli.py menu
 ```
+
+## Mode menu (v3)
+
+`menu` membuka menu bernomor (1 Status, 2 Daftar user, 3 Buat user,
+4 Ganti kata sandi, 5 Ubah role/tier, 6 Aktifkan/nonaktifkan,
+7 Hapus user, 8 Settings, 9 Backup, 10 Reset, 11 Init, 0 Keluar).
+Menu hanya mengumpulkan argumen lalu memanggil fungsi perintah yang
+sama persis dengan mode CLI — jadi pengamannya identik: kata sandi
+tetap diminta tersembunyi, hapus tetap minta ketik login, reset tetap
+minta konfirmasi app + ketik `RESET <app>`. Pilihan yang salah atau
+gagal tidak keluar dari menu; hanya 0 yang keluar. Perintah CLI biasa
+tetap berlaku dan tidak berubah.
 
 ## Model user per app
 
