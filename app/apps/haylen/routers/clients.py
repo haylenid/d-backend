@@ -25,7 +25,8 @@ def _out(c):
             "start": c.start.isoformat() if c.start else None,
             "end": c.end.isoformat() if c.end else "",
             "end_orig": c.end_orig.isoformat() if c.end_orig else "",
-            "coach_id": c.coach_id, "cond": c.cond, "renew": c.renew,
+            "coach_id": c.coach_id, "city_id": c.city_id,
+            "cond": c.cond, "renew": c.renew,
             "hrmax": c.hrmax, "mp": c.mp,
             "arch": c.arch.isoformat() if c.arch else None,
             "note": c.note or "", "grp": c.grp,
@@ -61,6 +62,10 @@ def list_clients(status: str = "aktif", q: Optional[str] = None,
 def create_client(body: schemas.ClientIn,
                   user: models.Member = Depends(get_current_user),
                   db: Session = Depends(get_db)):
+    if not body.city_id:
+        raise HTTPException(status_code=400, detail="Kota klien wajib diisi")
+    if not db.query(models.City).filter_by(id=body.city_id).first():
+        raise HTTPException(status_code=400, detail="Kota tidak ada")
     import re
     maxn = 1000
     for (u,) in db.query(models.Client.uid).all():
@@ -105,7 +110,13 @@ def patch_client(cid: str, body: schemas.ClientPatch,
     c = db.query(models.Client).filter_by(id=cid).first()
     if not c:
         raise HTTPException(status_code=404, detail="Klien tidak ada")
-    for k, v in body.model_dump(exclude_unset=True).items():
+    upd = body.model_dump(exclude_unset=True)
+    if "city_id" in upd:
+        if not upd["city_id"]:
+            raise HTTPException(status_code=400, detail="Kota klien wajib diisi")
+        if not db.query(models.City).filter_by(id=upd["city_id"]).first():
+            raise HTTPException(status_code=400, detail="Kota tidak ada")
+    for k, v in upd.items():
         setattr(c, k, v)
     db.commit(); db.refresh(c)
     return {"data": _out(c)}
