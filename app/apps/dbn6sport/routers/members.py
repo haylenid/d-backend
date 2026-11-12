@@ -14,7 +14,7 @@ router = APIRouter()
 
 def _out(m):
     return {"id": m.id, "name": m.name, "role": m.role, "login": m.login,
-            "email": m.email, "wa": m.wa, "loc": m.loc, "city_id": m.city_id}
+            "email": m.email, "wa": m.wa, "loc": m.loc}
 
 
 @router.get("/members")
@@ -27,14 +27,10 @@ def list_members(user: models.Member = Depends(get_current_user),
 def create_member(body: schemas.MemberIn,
                   user: models.Member = Depends(get_current_user),
                   db: Session = Depends(get_db)):
-    if body.city_id and not db.query(models.City).filter_by(id=body.city_id).first():
-        raise HTTPException(status_code=400, detail="Kota tidak ada")
-    if body.role == "coach" and not body.city_id:
-        raise HTTPException(status_code=400, detail="Kota coach wajib diisi")
     pw = body.password or "x"
     m = models.Member(id=next_id(db, models.Member, "m"), name=body.name, role=body.role,
                       login=body.login, email=body.email, wa=body.wa or "",
-                      loc=body.loc or "", city_id=body.city_id,
+                      loc=body.loc or "",
                       password_hash=bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode())
     db.add(m); db.commit(); db.refresh(m)
     return {"data": _out(m)}
@@ -47,14 +43,7 @@ def patch_member(mid: str, body: schemas.MemberPatch,
     m = db.query(models.Member).filter_by(id=mid).first()
     if not m:
         raise HTTPException(status_code=404, detail="Anggota tidak ada")
-    upd = body.model_dump(exclude_unset=True)
-    if "city_id" in upd and upd["city_id"] and not db.query(models.City).filter_by(id=upd["city_id"]).first():
-        raise HTTPException(status_code=400, detail="Kota tidak ada")
-    new_role = upd.get("role", m.role)
-    new_city = upd.get("city_id", m.city_id)
-    if new_role == "coach" and not new_city:
-        raise HTTPException(status_code=400, detail="Kota coach wajib diisi")
-    for k, v in upd.items():
+    for k, v in body.model_dump(exclude_unset=True).items():
         setattr(m, k, v)
     db.commit(); db.refresh(m)
     return {"data": _out(m)}

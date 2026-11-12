@@ -13,7 +13,7 @@ router = APIRouter()
 
 def _out(m: models.Member) -> dict:
     return {"id": m.id, "name": m.name, "role": m.role, "login": m.login,
-            "email": m.email, "wa": m.wa, "loc": m.loc, "city_id": m.city_id}
+            "email": m.email, "wa": m.wa, "loc": m.loc}
 
 
 @router.post("/auth/login")

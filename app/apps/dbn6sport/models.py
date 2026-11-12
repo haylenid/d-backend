@@ -30,35 +30,7 @@ class Member(Base):
     email = Column(String(255))
     wa = Column(String(32))
     loc = Column(String(128))
-    # Kota domisili (wajib untuk coach; 1 akun = 1 kota). Dipakai untuk
-    # membatasi tampilan Komisi coach ke tarif kotanya. FK ke cities.
-    city_id = Column(String(16), ForeignKey(f"{SCHEMA}.cities.id"),
-                     nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
-class City(Base):
-    """Daftar kota (data master, dikelola owner di Pengaturan)."""
-    __tablename__ = "cities"
-    __table_args__ = {"schema": SCHEMA}
-
-    id = Column(String(16), primary_key=True)  # ct1
-    name = Column(String(160), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-
-class ProgramCityRate(Base):
-    """Timpaan tarif program per kota. price/fee NULL = pakai tarif bawaan
-    program (programs.price / programs.fee)."""
-    __tablename__ = "program_city_rates"
-    __table_args__ = {"schema": SCHEMA}
-
-    program_id = Column(String(16), ForeignKey(f"{SCHEMA}.programs.id"),
-                        primary_key=True)
-    city_id = Column(String(16), ForeignKey(f"{SCHEMA}.cities.id"),
-                     primary_key=True)
-    price = Column(Integer, nullable=True)
-    fee = Column(Integer, nullable=True)
 
 
 class Program(Base):
@@ -91,11 +63,6 @@ class Client(Base):
     end = Column(Date, nullable=True)
     end_orig = Column(Date, nullable=True)  # tanggal selesai sebelum pengunduran (izin coach)
     coach_id = Column(String(16), ForeignKey(f"{SCHEMA}.members.id"), index=True)
-    # Kota domisili klien (wajib diisi saat buat klien). Kunci tarif:
-    # harga & komisi sesi ikut kota klien. NULL = klien lama yang belum
-    # diisi kotanya (sesinya belum bisa dihitung).
-    city_id = Column(String(16), ForeignKey(f"{SCHEMA}.cities.id"),
-                     nullable=True, index=True)
     cond = Column(String(64))
     renew = Column(Boolean, default=False)
     hrmax = Column(Integer)

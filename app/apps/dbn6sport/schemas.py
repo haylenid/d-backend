@@ -27,28 +27,12 @@ class UserOut(BaseModel):
 class MemberIn(BaseModel):
     name: str; role: str; login: str
     email: Optional[str] = None; wa: Optional[str] = None; loc: Optional[str] = None
-    city_id: Optional[str] = None
     password: Optional[str] = None
 
 
 class MemberPatch(BaseModel):
     name: Optional[str] = None; role: Optional[str] = None
     email: Optional[str] = None; wa: Optional[str] = None; loc: Optional[str] = None
-    city_id: Optional[str] = None
-
-
-# ---------- kota & tarif per kota ----------
-class CityIn(BaseModel):
-    name: str
-
-
-class CityPatch(BaseModel):
-    name: Optional[str] = None
-
-
-class ProgramRateIn(BaseModel):
-    program_id: str; city_id: str
-    price: Optional[int] = None; fee: Optional[int] = None
 
 
 # ---------- programs ----------
@@ -69,7 +53,7 @@ class ProgramPatch(BaseModel):
 # ---------- clients ----------
 class ClientIn(BaseModel):
     name: str; program_id: str; start: date_type
-    coach_id: str; city_id: Optional[str] = None
+    coach_id: str
     cond: Optional[str] = "Prima"; renew: bool = False
     hrmax: Optional[int] = None; mp: Optional[int] = None
     note: Optional[str] = ""; grp: Optional[str] = None
@@ -80,8 +64,7 @@ class ClientPatch(BaseModel):
     name: Optional[str] = None; program_id: Optional[str] = None
     start: Optional[date_type] = None; end: Optional[date_type] = None
     end_orig: Optional[date_type] = None
-    coach_id: Optional[str] = None; city_id: Optional[str] = None
-    cond: Optional[str] = None
+    coach_id: Optional[str] = None; cond: Optional[str] = None
     renew: Optional[bool] = None; hrmax: Optional[int] = None
     mp: Optional[int] = None; note: Optional[str] = None
     grp: Optional[str] = None
