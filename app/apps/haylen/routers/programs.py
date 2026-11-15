@@ -69,6 +69,10 @@ def delete_program(pid: str, force: bool = False,
             {models.Transaction.program_id: None}, synchronize_session=False)
         db.query(models.Client).filter_by(program_id=pid).update(
             {models.Client.program_id: None}, synchronize_session=False)
+    # Tarif per kota milik program ini ikut terhapus: tanpa ini DELETE gagal
+    # ForeignKeyViolation (program_city_rates masih mengacu ke program).
+    db.query(models.ProgramCityRate).filter_by(program_id=pid).delete(
+        synchronize_session=False)
     db.delete(p)
     db.commit()
     return None
