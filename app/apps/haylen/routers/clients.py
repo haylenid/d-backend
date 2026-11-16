@@ -132,8 +132,11 @@ def delete_client(cid: str, user: models.Member = Depends(get_current_user),
     # FK violation -> 500 (kejadian produksi 2026-10-21 pada klien berelasi).
     # Titip & makeup adalah artefak penjadwalan klien: ikut terhapus.
     # Pembayaran komisi adalah riwayat uang: selamat, client_id dilepas (NULL).
+    # Absensi per peserta (client_attendance, Fase 1 2026-11-16): ikut terhapus —
+    # tanpa baris ini hapus klien gagal FK (kejadian produksi 2026-11-16, cl106).
     db.query(models.Titip).filter_by(client_id=cid).delete()
     db.query(models.Makeup).filter_by(client_id=cid).delete()
+    db.query(models.ClientAttendance).filter_by(client_id=cid).delete()
     db.query(models.CommissionPayment).filter_by(client_id=cid).update(
         {models.CommissionPayment.client_id: None})
     db.delete(c)
