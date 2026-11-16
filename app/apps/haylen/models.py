@@ -240,6 +240,22 @@ class Attendance(Base):
     at = Column(String(8))
 
 
+class ClientAttendance(Base):
+    """Kehadiran per peserta (paket semi privat): satu baris per klien per slot.
+    Dipakai hitung komisi semi privat (1 hadir = 75.000, 2 hadir = 85.000)."""
+    __tablename__ = "client_attendance"
+    __table_args__ = {"schema": SCHEMA}
+
+    id = Column(String(64), primary_key=True)  # date|coach|time|client
+    date = Column(String(10), index=True)
+    coach_id = Column(String(16), ForeignKey(f"{SCHEMA}.members.id"), index=True)
+    time = Column(String(8))
+    client_id = Column(String(16), ForeignKey(f"{SCHEMA}.clients.id"), index=True)
+    status = Column(String(16))  # Hadir/Tidak hadir
+    by_name = Column(String(100))
+    at = Column(String(8))
+
+
 class CoachProfile(Base):
     __tablename__ = "coach_profiles"
     __table_args__ = {"schema": SCHEMA}

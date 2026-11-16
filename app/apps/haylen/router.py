@@ -4,8 +4,9 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from .routers import (
-    activity, auth, attendance, cities, clients, corrections, dashboard, finance,
-    makeup, members, messages, portal, programs, requests, schedule, settings, titip,
+    activity, auth, attendance, cities, client_attendance, clients, corrections,
+    dashboard, finance, makeup, members, messages, portal, programs, requests,
+    schedule, settings, titip,
 )
 
 router = APIRouter()
@@ -24,5 +25,6 @@ router.include_router(settings.router)
 router.include_router(activity.router)
 router.include_router(portal.router)
 router.include_router(attendance.router)
+router.include_router(client_attendance.router)
 router.include_router(titip.router)
 router.include_router(makeup.router)
