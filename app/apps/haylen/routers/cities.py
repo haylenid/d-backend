@@ -26,7 +26,8 @@ def _out_city(c):
 
 def _out_rate(r):
     return {"program_id": r.program_id, "city_id": r.city_id,
-            "price": r.price, "fee": r.fee}
+            "price": r.price, "fee": r.fee,
+            "semi_fee_1": r.semi_fee_1, "semi_fee_2": r.semi_fee_2}
 
 
 def _get_city(db, cid):
@@ -128,10 +129,11 @@ def upsert_rate(body: schemas.ProgramRateIn,
                 db: Session = Depends(get_db)):
     _get_program(db, body.program_id)
     _get_city(db, body.city_id)
-    if body.price is None and body.fee is None:
+    if (body.price is None and body.fee is None
+            and body.semi_fee_1 is None and body.semi_fee_2 is None):
         raise HTTPException(status_code=400,
                             detail="Isi harga atau komisi (atau hapus timpaan).")
-    for v in (body.price, body.fee):
+    for v in (body.price, body.fee, body.semi_fee_1, body.semi_fee_2):
         if v is not None and v < 0:
             raise HTTPException(status_code=400,
                                 detail="Harga dan komisi tidak boleh negatif")
@@ -143,6 +145,8 @@ def upsert_rate(body: schemas.ProgramRateIn,
         db.add(r)
     r.price = body.price
     r.fee = body.fee
+    r.semi_fee_1 = body.semi_fee_1
+    r.semi_fee_2 = body.semi_fee_2
     db.commit(); db.refresh(r)
     return {"data": _out_rate(r)}
 

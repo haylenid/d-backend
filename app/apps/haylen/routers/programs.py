@@ -14,6 +14,7 @@ router = APIRouter()
 def _out(p):
     return {"id": p.id, "name": p.name, "price": p.price, "unit": p.unit,
             "wk": p.wk, "lvl": float(p.lvl), "peserta": p.peserta, "fee": p.fee,
+            "semi_fee_1": p.semi_fee_1, "semi_fee_2": p.semi_fee_2,
             "detail": p.detail}
 
 

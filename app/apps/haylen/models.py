@@ -59,6 +59,10 @@ class ProgramCityRate(Base):
                      primary_key=True)
     price = Column(Integer, nullable=True)
     fee = Column(Integer, nullable=True)
+    # Komisi semi privat custom per kota (NULL = pakai tarif program,
+    # yang kosong pun jatuh ke bawaan 75.000/85.000).
+    semi_fee_1 = Column(Integer, nullable=True)
+    semi_fee_2 = Column(Integer, nullable=True)
 
 
 class Program(Base):
@@ -73,6 +77,9 @@ class Program(Base):
     lvl = Column(Numeric(4, 2), nullable=False)
     peserta = Column(Integer, nullable=False, default=1)
     fee = Column(Integer, nullable=False, default=0)
+    # Komisi semi privat custom per program (NULL = bawaan 75.000/85.000).
+    semi_fee_1 = Column(Integer, nullable=True)
+    semi_fee_2 = Column(Integer, nullable=True)
     detail = Column(JSONB, nullable=True)  # susunan program lengkap (sched, tpls, dll)
 
 

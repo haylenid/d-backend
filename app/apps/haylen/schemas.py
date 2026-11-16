@@ -49,6 +49,7 @@ class CityPatch(BaseModel):
 class ProgramRateIn(BaseModel):
     program_id: str; city_id: str
     price: Optional[int] = None; fee: Optional[int] = None
+    semi_fee_1: Optional[int] = None; semi_fee_2: Optional[int] = None
 
 
 # ---------- programs ----------
@@ -56,6 +57,7 @@ class ProgramIn(BaseModel):
     name: str; price: int; unit: Optional[str] = None
     wk: int; lvl: float
     peserta: int = 1; fee: int = 0
+    semi_fee_1: Optional[int] = None; semi_fee_2: Optional[int] = None
     detail: Optional[dict] = None
 
 
@@ -63,6 +65,7 @@ class ProgramPatch(BaseModel):
     name: Optional[str] = None; price: Optional[int] = None
     unit: Optional[str] = None; wk: Optional[int] = None; lvl: Optional[float] = None
     peserta: Optional[int] = None; fee: Optional[int] = None
+    semi_fee_1: Optional[int] = None; semi_fee_2: Optional[int] = None
     detail: Optional[dict] = None
 
 
