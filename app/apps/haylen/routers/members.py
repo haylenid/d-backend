@@ -48,6 +48,15 @@ def patch_member(mid: str, body: schemas.MemberPatch,
     if not m:
         raise HTTPException(status_code=404, detail="Anggota tidak ada")
     upd = body.model_dump(exclude_unset=True)
+    # login sebelumnya tidak ada di skema: dikirim form tapi diam-diam dibuang
+    # (edit anggota tampak tersimpan tapi login tidak berubah, 2026-11-18).
+    if "login" in upd:
+        if not (upd["login"] or "").strip():
+            raise HTTPException(status_code=400, detail="ID login wajib diisi")
+        upd["login"] = upd["login"].strip()
+        dup = db.query(models.Member).filter(models.Member.login == upd["login"], models.Member.id != mid).first()
+        if dup:
+            raise HTTPException(status_code=400, detail="ID login sudah dipakai")
     if "city_id" in upd and upd["city_id"] and not db.query(models.City).filter_by(id=upd["city_id"]).first():
         raise HTTPException(status_code=400, detail="Kota tidak ada")
     new_role = upd.get("role", m.role)

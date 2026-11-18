@@ -32,7 +32,7 @@ class MemberIn(BaseModel):
 
 
 class MemberPatch(BaseModel):
-    name: Optional[str] = None; role: Optional[str] = None
+    name: Optional[str] = None; role: Optional[str] = None; login: Optional[str] = None
     email: Optional[str] = None; wa: Optional[str] = None; loc: Optional[str] = None
     city_id: Optional[str] = None
 
