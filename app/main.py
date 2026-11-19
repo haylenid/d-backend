@@ -1,4 +1,4 @@
-"""Backend gabungan: 1 proses FastAPI untuk 5 aplikasi.
+"""Backend gabungan: 1 proses FastAPI untuk 6 aplikasi.
 
 Namespace:
     /api/dbn6sport/v1/* -> dash-n6sport (dashboard kepelatihan)
@@ -6,6 +6,7 @@ Namespace:
     /api/dbfin/*        -> DB Finance
     /api/claisrox/*     -> Claisrox (operasional produksi)
     /api/haylen/v1/*   -> dash-haylen (dashboard kepelatihan)
+    /api/haylen-notes/v1/* -> haylen_notes (Progres Klien, sub-aplikasi)
 
 Jalankan:  uvicorn app.main:app --reload   (dari folder d-backend/)
 Dokumen:   http://localhost:8000/docs
@@ -26,6 +27,9 @@ from app.apps.dbn6sport.router import router as dbn6sport_router
 from app.apps.dbn6sport.seed import ensure_basics as dbn6sport_seed
 from app.apps.haylen.router import router as haylen_router
 from app.apps.haylen.seed import ensure_basics as haylen_seed
+from app.apps.haylen_notes.app import app as haylen_notes_app
+from app.apps.haylen_notes.app import close_pool as haylen_notes_close
+from app.apps.haylen_notes.app import open_pool as haylen_notes_open
 from app.core.config import settings
 from app.core.database import SessionLocal, init_db
 from app.core.logging import setup_logging, get_logger, request_logging_middleware
@@ -39,6 +43,7 @@ logger = get_logger("main")
 async def lifespan(app: FastAPI):
     logger.info("starting up, init_db()")
     init_db()
+    haylen_notes_open()
     db = SessionLocal()
     try:
         dbn6sport_seed(db)
@@ -51,6 +56,7 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
     yield
+    haylen_notes_close()
     logger.info("shutting down")
 
 
@@ -89,7 +95,11 @@ app.include_router(dbfin_router, prefix="/api/dbfin")
 app.include_router(claisrox_router, prefix="/api/claisrox")
 app.include_router(haylen_router, prefix="/api/haylen/v1")
 
+# haylen_notes: sub-aplikasi mandiri (bukan router) supaya middleware +
+# exception handler {"error": ...} yang diharapkan FE-nya tetap utuh.
+app.mount("/api/haylen-notes/v1", haylen_notes_app)
+
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "apps": ["dbn6sport", "dbacc", "dbfin", "claisrox", "haylen"]}
+    return {"status": "ok", "apps": ["dbn6sport", "dbacc", "dbfin", "claisrox", "haylen", "haylen_notes"]}

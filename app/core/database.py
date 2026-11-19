@@ -1,6 +1,6 @@
 """Database bersama: satu database PostgreSQL, satu schema per aplikasi.
 
-Schema: dn6sport | daccounting | dfinance | dclaisrox | haylen
+Schema: dn6sport | daccounting | dfinance | dclaisrox | haylen | haylen_notes
 Semua model aplikasi memakai Base ini dan wajib mencantumkan
 __table_args__ = {"schema": "<nama-schema>"}.
 
@@ -25,7 +25,7 @@ NAMING_CONVENTION = {
     "pk": "pk_%(table_name)s",
 }
 
-APP_SCHEMAS = ["dn6sport", "daccounting", "dfinance", "dclaisrox", "haylen"]
+APP_SCHEMAS = ["dn6sport", "daccounting", "dfinance", "dclaisrox", "haylen", "haylen_notes"]
 
 _BASES: dict = {}
 

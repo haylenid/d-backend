@@ -1,7 +1,8 @@
 """Konfigurasi terpusat backend gabungan Apk-Final.
 
-Satu file .env untuk kelima aplikasi. Tiap aplikasi memakai schema
-PostgreSQL sendiri (dn6sport, daccounting, dfinance, dclaisrox) dalam satu database.
+Satu file .env untuk keenam aplikasi. Tiap aplikasi memakai schema
+PostgreSQL sendiri (dn6sport, daccounting, dfinance, dclaisrox, haylen,
+haylen_notes) dalam satu database.
 """
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,7 +10,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # Database: satu database, lima schema (lihat app.core.database.APP_SCHEMAS)
+    # Database: satu database, enam schema (lihat app.core.database.APP_SCHEMAS)
     DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/apkfinal"
 
     # JWT tunggal untuk semua aplikasi (klaim "app" membedakan pemilik token)
@@ -28,6 +29,14 @@ class Settings(BaseSettings):
     N6_OWNER_USERNAME: str = "owner"
     N6_OWNER_PASSWORD: str = "owner123"
     N6_OWNER_NAME: str = "Owner N6"
+
+    # Owner Progres Klien (haylen_notes): ID sama dengan owner app lain,
+    # akun terpisah di skema haylen_notes; dibuat otomatis saat startup.
+    # Default mengikuti konvensi seed app lain (owner123); ganti lewat
+    # env atau POST /me/secret setelah boot pertama.
+    HAYLEN_NOTES_OWNER_ID: str = "owner"
+    HAYLEN_NOTES_OWNER_PASSWORD: str = "owner123"
+    HAYLEN_NOTES_OWNER_NAME: str = "Owner"
 
     DBACC_OWNER_EMAIL: str = "owner@dbacc.local.id"
     DBACC_OWNER_PASSWORD: str = "owner123"
